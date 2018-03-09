@@ -1,0 +1,15 @@
+apply plugin: 'java-library'
+
+dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    //注解处理器，用来生成 META-INF/services/javax.annotation.processing.Processor文件的
+    //只需要在你定义的注解处理器上添加 @AutoService(Processor.class)
+    implementation 'com.google.auto.service:auto-service:1.0-rc3'
+    //square公司开发的java文件生成 神库
+    implementation 'com.squareup:javapoet:1.9.0'
+
+    implementation project(':annotation')
+}
+
+sourceCompatibility = "1.7"
+targetCompatibility = "1.7"
