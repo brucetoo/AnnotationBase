@@ -7,7 +7,7 @@ dependencies {
     implementation 'com.google.auto.service:auto-service:1.0-rc3'
     //square公司开发的java文件生成 神库
     implementation 'com.squareup:javapoet:1.9.0'
-
+    //为了能访问到注解类
     implementation project(':annotation')
 }
 
