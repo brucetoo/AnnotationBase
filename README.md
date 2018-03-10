@@ -1,5 +1,3 @@
-##Android APT(Annotation Processing Tool)
-
 #### 1、概念
 > Annotations是一种元数据，为一些额外的数据信息，不会参与代码的任何运算逻辑，故而不会对原程序代码的操作产生直接的影响
 
@@ -41,5 +39,171 @@
   > 该注解类型被自动继承
   - 如果一个使用了@Inherited修饰的annotation类型被用于一个class，则这个annotation将被用于该class的子类
   
-#### 2、注解处理器
-> 作用就是生成java代码
+#### 2、Annotation生成代码
+
+##### 2.1 创建java annotation module
+
+> 在此举例创建的java module取名为 “annotation”,此module主要是存放annotation相关的注解类
+
+gradle文件生成示例：
+
+```
+    apply plugin: 'java-library'
+    
+    dependencies {
+        implementation fileTree(dir: 'libs', include: ['*.jar'])
+    }
+    
+    sourceCompatibility = "1.7"
+    targetCompatibility = "1.7"
+```
+
+注解类示例：
+```
+    @Target(ElementType.TYPE)
+    @Retention(RetentionPolicy.CLASS)
+    public @interface PoetTest {
+    }
+```
+
+##### 2.2 创建java compiler module
+
+> 在此举例创建的java module取名为 “compiler”,此module主要是存放Processor代码生成工具类
+
+gradle配置示例：
+```
+apply plugin: 'java-library'
+    
+    dependencies {
+        implementation fileTree(dir: 'libs', include: ['*.jar'])
+        //注解处理器，用来生成 META-INF/services/javax.annotation.processing.Processor文件的
+        //只需要在你定义的注解处理器上添加 @AutoService(Processor.class)
+        implementation 'com.google.auto.service:auto-service:1.0-rc3'
+        //square公司开发的java文件生成 神库
+        implementation 'com.squareup:javapoet:1.9.0'
+        //为了能访问到注解类
+        implementation project(':annotation')
+    }
+    
+    sourceCompatibility = "1.7"
+    targetCompatibility = "1.7"
+```
+
+##### 2.3 App工程配置
+
+```
+dependencies {
+        implementation project(':annotation') 
+        annotationProcessor project(':compiler')
+    }
+```
+> 注: 在gradle插件2.2版本后，提倡使用annotationProcessor代替android-apt
+
+具体的解释请见[APT,annotationProcessor,android-apt,Provided解析](http://blog.csdn.net/xx326664162/article/details/68490059)
+
+##### 2.4 AbstractProcessor使用详解
+
+###### 2.4.1 首先需要在继承类上注解@AutoService(Processor.class)
+
+> 目的是使用google auto service简化注解处理器的添加，详细的解释和对比请见[介绍编译时注解的使用方法](https://juejin.im/entry/57ad3fa47db2a200540c9251)
+
+###### 2.4.2 关键方法解释
+```
+public class MyProcessor extends AbstractProcessor {
+    
+        @Override
+        public synchronized void init(ProcessingEnvironment env){
+          /**
+          ProcessingEnviroment提供很多有用的工具类Elements,Types和Filer。
+          Filer是个接口，支持通过注解处理器创建新文件 
+          Elements 元素操作辅助工具类
+          */
+        }
+    
+        @Override
+        public boolean process(Set<? extends TypeElement> annoations, RoundEnvironment env) {
+         /**
+         1.相当于每个处理器的主函数main()。你在这里写你的扫描、评估和处理注解的代码，以及生成Java文件。
+         2.输入参数annotations 请求处理的注解类型集合
+         3.输入参数RoundEnviroment，可以让你查询出包含特定注解的被注解元素，相当于“有关全局源码的上下文环境”
+         4.@return 如果返回 true，则这些注解已声明并且不要求后续 Processor 处理它们；如果返回 false，则这些注解未声明并且可能要求后续 Processor 处理它们
+         */
+        }
+    
+        @Override
+        public Set<String> getSupportedAnnotationTypes() { 
+         //用于指明注解处理器是注册给哪个注解的。注意，它的返回值是一个字符串的集合，包含本处理器想要处理的注解类型的合法全称。
+        }
+    
+        @Override
+        public SourceVersion getSupportedSourceVersion() { 
+         //用来指定你使用的Java版本。通常这里返回SourceVersion.latestSupported()
+        }
+        
+        //后面两个方法可以用注解代替
+        //@SupportedSourceVersion(SourceVersion.latestSupported())
+        //@SupportedAnnotationTypes({// 合法注解全名的集合})
+    
+    }
+```
+
+###### 2.4.3 process生成类举例
+
+关于类的具体生成细节，参考square公司的开源库[`javapoet`](https://github.com/square/javapoet)有详尽的示例
+          
+```
+
+/**
+1.首先要明白要生成一个怎么样的类
+比如以下类
+  package com.example.helloworld;
+  public final class HelloWorld {
+  public static void main(String[] args) {
+  System.out.println("Hello, JavaPoet!");
+  }
+  }
+  */
+ 
+ //2. 定义方法，按照书写的顺序：限定符，返回值，参数，声明语句等
+ MethodSpec main = MethodSpec.methodBuilder("main")
+         .addModifiers(Modifier.STATIC, Modifier.PUBLIC)
+         .returns(void.class)
+         .addParameter(String[].class, "args")
+         .addStatement("$T.out.println($S)", System.class, "Hello,JavaPoet")
+         .build();
+ //3. 定义类，也是按照书写的顺序
+ TypeSpec helloworld = TypeSpec.classBuilder("HelloWord")
+         .addModifiers(Modifier.PUBLIC,Modifier.FINAL)
+         .addMethod(main)
+         .build();
+ //生成java文件对象
+ JavaFile file = JavaFile.builder("com.brucetoo.annotation", helloworld)
+         .build();
+ try {
+     //通过processing生成对应的java文件
+     file.writeTo(processingEnv.getFiler());
+ } catch (IOException e) {
+     e.printStackTrace();
+ }
+```
+
+当书写完Processor代码后，点击`Android Studio`的`ReBuild Project`，可以在在`app`的 `build/generated/source/apt/debug`目录下，即可看到生成的代码。
+
+详尽的示例请见[InjectProcessor](https://github.com/brucetoo/AnnotationBase/blob/master/compiler/src/main/java/com/brucetoo/compiler/InjectProcessor.java)示例
+
+###### 2.4.4 AbstractProcessor调试
+
+- 在项目根目录下的 gradle.properties 文件中加入如下两条语句
+
+```
+org.gradle.jvmargs=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005
+
+org.gradle.parallel=true
+```
+- 点击 `Edit Configurations` 配置 `Remote`，直接点击确认用默认配置就行，名字任意定义，注意 `address` 与 `gradle.properties` 中的 `address` 保持一致(默认就是 5005)
+- 点击`debug`编译按钮
+- 在注解处理器项目中打上断点，然后`Build` -> `Rebuild Project`
+
+可参考[断点调试AbstractProcessor](https://github.com/bingoogolapple/bingoogolapple.github.io/issues/203)
+
+3、语言模型包(ing...)
