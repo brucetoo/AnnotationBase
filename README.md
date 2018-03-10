@@ -47,7 +47,7 @@
 
 gradle文件生成示例：
 
-```
+```groovy
     apply plugin: 'java-library'
     
     dependencies {
@@ -59,7 +59,7 @@ gradle文件生成示例：
 ```
 
 注解类示例：
-```
+```java
     @Target(ElementType.TYPE)
     @Retention(RetentionPolicy.CLASS)
     public @interface PoetTest {
@@ -71,7 +71,7 @@ gradle文件生成示例：
 > 在此举例创建的java module取名为 “compiler”,此module主要是存放Processor代码生成工具类
 
 gradle配置示例：
-```
+```groovy
 apply plugin: 'java-library'
     
     dependencies {
@@ -91,7 +91,7 @@ apply plugin: 'java-library'
 
 ##### 2.3 App工程配置
 
-```
+```groovy
 dependencies {
         implementation project(':annotation') 
         annotationProcessor project(':compiler')
@@ -108,41 +108,41 @@ dependencies {
 > 目的是使用google auto service简化注解处理器的添加，详细的解释和对比请见[介绍编译时注解的使用方法](https://juejin.im/entry/57ad3fa47db2a200540c9251)
 
 ###### 2.4.2 关键方法解释
-```
+```java
 public class MyProcessor extends AbstractProcessor {
     
-        @Override
-        public synchronized void init(ProcessingEnvironment env){
-          /**
-          ProcessingEnviroment提供很多有用的工具类Elements,Types和Filer。
-          Filer是个接口，支持通过注解处理器创建新文件 
-          Elements 元素操作辅助工具类
-          */
-        }
-    
-        @Override
-        public boolean process(Set<? extends TypeElement> annoations, RoundEnvironment env) {
-         /**
-         1.相当于每个处理器的主函数main()。你在这里写你的扫描、评估和处理注解的代码，以及生成Java文件。
-         2.输入参数annotations 请求处理的注解类型集合
-         3.输入参数RoundEnviroment，可以让你查询出包含特定注解的被注解元素，相当于“有关全局源码的上下文环境”
-         4.@return 如果返回 true，则这些注解已声明并且不要求后续 Processor 处理它们；如果返回 false，则这些注解未声明并且可能要求后续 Processor 处理它们
-         */
-        }
-    
-        @Override
-        public Set<String> getSupportedAnnotationTypes() { 
-         //用于指明注解处理器是注册给哪个注解的。注意，它的返回值是一个字符串的集合，包含本处理器想要处理的注解类型的合法全称。
-        }
-    
-        @Override
-        public SourceVersion getSupportedSourceVersion() { 
-         //用来指定你使用的Java版本。通常这里返回SourceVersion.latestSupported()
-        }
-        
-        //后面两个方法可以用注解代替
-        //@SupportedSourceVersion(SourceVersion.latestSupported())
-        //@SupportedAnnotationTypes({// 合法注解全名的集合})
+   @Override
+   public synchronized void init(ProcessingEnvironment env){
+     /**
+     ProcessingEnviroment提供很多有用的工具类Elements,Types和Filer。
+     Filer是个接口，支持通过注解处理器创建新文件 
+     Elements 元素操作辅助工具类
+     */
+   }
+   
+   @Override
+   public boolean process(Set<? extends TypeElement> annoations, RoundEnvironment env) {
+    /**
+    1.相当于每个处理器的主函数main()。你在这里写你的扫描、评估和处理注解的代码，以及生成Java文件。
+    2.输入参数annotations 请求处理的注解类型集合
+    3.输入参数RoundEnviroment，可以让你查询出包含特定注解的被注解元素，相当于“有关全局源码的上下文环境”
+    4.@return 如果返回 true，则这些注解已声明并且不要求后续 Processor 处理它们；如果返回 false，则这些注解未声明并且可能要求后续 Processor 处理它们
+    */
+   }
+   
+   @Override
+   public Set<String> getSupportedAnnotationTypes() { 
+    //用于指明注解处理器是注册给哪个注解的。注意，它的返回值是一个字符串的集合，包含本处理器想要处理的注解类型的合法全称。
+   }
+   
+   @Override
+   public SourceVersion getSupportedSourceVersion() { 
+    //用来指定你使用的Java版本。通常这里返回SourceVersion.latestSupported()
+   }
+   
+   //后面两个方法可以用注解代替
+   //@SupportedSourceVersion(SourceVersion.latestSupported())
+   //@SupportedAnnotationTypes({// 合法注解全名的集合})
     
     }
 ```
@@ -150,19 +150,19 @@ public class MyProcessor extends AbstractProcessor {
 ###### 2.4.3 process生成类举例
 
 关于类的具体生成细节，参考square公司的开源库[`javapoet`](https://github.com/square/javapoet)有详尽的示例
-          
-```
-
-/**
-1.首先要明白要生成一个怎么样的类
-比如以下类
-  package com.example.helloworld;
-  public final class HelloWorld {
-  public static void main(String[] args) {
-  System.out.println("Hello, JavaPoet!");
-  }
-  }
-  */
+       
+```java
+ 
+ /**
+ 1.首先要明白要生成一个怎么样的类
+ 比如以下类
+   package com.example.helloworld;
+   public final class HelloWorld {
+   public static void main(String[] args) {
+   System.out.println("Hello, JavaPoet!");
+   }
+   }
+   */
  
  //2. 定义方法，按照书写的顺序：限定符，返回值，参数，声明语句等
  MethodSpec main = MethodSpec.methodBuilder("main")
@@ -185,6 +185,7 @@ public class MyProcessor extends AbstractProcessor {
  } catch (IOException e) {
      e.printStackTrace();
  }
+ 
 ```
 
 当书写完Processor代码后，点击`Android Studio`的`ReBuild Project`，可以在在`app`的 `build/generated/source/apt/debug`目录下，即可看到生成的代码。
@@ -195,9 +196,8 @@ public class MyProcessor extends AbstractProcessor {
 
 - 在项目根目录下的 gradle.properties 文件中加入如下两条语句
 
-```
+```groovy
 org.gradle.jvmargs=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005
-
 org.gradle.parallel=true
 ```
 - 点击 `Edit Configurations` 配置 `Remote`，直接点击确认用默认配置就行，名字任意定义，注意 `address` 与 `gradle.properties` 中的 `address` 保持一致(默认就是 5005)
